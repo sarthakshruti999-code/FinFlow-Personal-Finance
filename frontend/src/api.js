@@ -1,8 +1,18 @@
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "/api";
-const api = axios.create({ baseURL: BASE_URL });
+const BASE_URL = process.env.REACT_APP_API_URL;
 
+const api = axios.create({
+  baseURL: BASE_URL,
+});
+
+if (!BASE_URL) {
+  console.warn("API URL not loaded yet...");
+}
+
+const api = axios.create({
+  baseURL: BASE_URL || "https://finflow-personal-finance.onrender.com/api",
+});
 // ── Expenses ──────────────────────────────────────────────────────────────────
 export const getExpenses    = (params) => api.get("/expenses", { params });
 export const createExpense  = (data)   => api.post("/expenses", data);
