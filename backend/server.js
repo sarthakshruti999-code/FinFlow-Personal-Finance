@@ -10,7 +10,9 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://fin-flow-personal-finance-30nug6y5a-harshlogics-projects.vercel.app", // Your specific preview URL
+    "https://fin-flow-personal-finance.vercel.app" // Add your main production URL here too
   ],
   credentials: true
 }));
