@@ -1,7 +1,9 @@
 const router = require("express").Router();
 const { Stock } = require("../models");
+const dotenv = require("dotenv");
 const USER = "demo_user";
- 
+dotenv.config();
+
 router.get("/", async (req, res) => {
   try {
     const stocks = await Stock.find({ userId: USER }).sort({ ticker: 1 });
@@ -11,8 +13,29 @@ router.get("/", async (req, res) => {
  
 router.post("/", async (req, res) => {
   try {
-    const stock = await Stock.create({ ...req.body, userId: USER });
+    var stockData = {...req.body};
+    const keyword = stockData.ticker;
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const tickerResponse = await fetch(`https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${keyword}&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`);
+    const tickerData = await tickerResponse.json();
+    if(!tickerData["bestMatches"]?.length){throw new Error("Invalid stock")}
+
+    const tickerResult = tickerData["bestMatches"].filter(m=>m["4. region"]?.includes("India") && m["2. name"]?.toLowerCase().includes(keyword.toLowerCase()))
+    if(!tickerResult.length){throw new Error("Stock not listed in India")}
+
+    stockData.ticker = tickerResult[0]["1. symbol"].toUpperCase();
+    stockData.companyName = tickerResult[0]["2. name"];
+
+    await sleep(1000);
+
+    const cmpResponse = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${stockData.ticker}&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`);
+    const cmpData = await cmpResponse.json();
+    stockData.cmp = Number(cmpData["Global Quote"]["05. price"])
+    
+    const stock = await Stock.create({ ...stockData, userId: USER });
     res.status(201).json(stock);
+
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
  

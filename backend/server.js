@@ -33,6 +33,11 @@ app.use(express.json());
 // ── Routes ────────────────────────────────────────────────────────────────────
 const { mfRouter, fdRouter, liquidRouter } = require("./routes/portfolio");
 
+app.use((req, res, next) => {
+  console.log(req.method, req.url);
+  next();
+});
+
 app.use("/api/expenses",    require("./routes/expenses"));
 app.use("/api/stocks",      require("./routes/stocks"));
 app.use("/api/mutualfunds", mfRouter);
@@ -48,7 +53,10 @@ mongoose
   .connect(process.env.MONGO_URI, { dbName: "finflow" })
   .then(() => {
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`✅  FinFlow API running on port ${PORT}`));
+    app.listen(PORT, () => {
+      console.log(`✅  FinFlow API running on port ${PORT}`);
+      require("./cron/schedular");
+    });
   })
   .catch(err => { console.error("❌  MongoDB connection failed:", err); process.exit(1); });
  
