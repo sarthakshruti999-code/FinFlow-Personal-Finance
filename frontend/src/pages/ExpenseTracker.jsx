@@ -38,36 +38,9 @@ export default function ExpenseTracker() {
   const del = async (id) => {
     try {
       await deleteExpense(id);
-      setExpenses((p) => p.filter((e) => e._id !== id));
-    } catch (e) {
-      setError(e.response?.data?.error || "Failed to delete");
-    }
+      setExpenses(p => p.filter(e => e._id !== id));
+    } catch (e) { setError(e.response?.data?.error || "Failed to delete"); }
   };
-
-
-
- const handleExport = async () => {
-  if (!expenses || expenses.length === 0) {
-    setError("No transactions available to export.");
-    return;
-  }
-  try {
-    const response = await exportExpenses();
-    const blob = response.data instanceof Blob
-      ? response.data
-      : new Blob([response.data], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "finflow-transactions.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    setError("Failed to export transactions. Please try again.");
-  }
-};
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const needSpend  = expenses.filter(e => e.type === "need").reduce((s, e) => s + e.amount, 0);
