@@ -10,7 +10,11 @@ import { C, fmt, MetricCard, SectionTitle, Pill, Spinner, ErrorBox } from "../sh
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fdCalc(fd) {
   const n   = fd.tenure / 12;
-  const mat = Math.round(fd.principal * Math.pow(1 + fd.rate / 100, n));
+  const compoundsPerYear = 4;
+  const mat = Math.round(
+    fd.principal *
+      Math.pow(1 + fd.rate / (100 * compoundsPerYear), compoundsPerYear * n),
+  );
   return { mat, int: mat - fd.principal };
 }
 

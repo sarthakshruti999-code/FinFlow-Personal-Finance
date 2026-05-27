@@ -80,7 +80,11 @@ fixedDepositSchema.virtual("maturityDate").get(function () {
 });
 fixedDepositSchema.virtual("maturityAmount").get(function () {
   const n = this.tenure / 12;
-  return Math.round(this.principal * Math.pow(1 + this.rate / 100, n));
+  const compoundsPerYear = 4;
+  return Math.round(
+    this.principal *
+      Math.pow(1 + this.rate / (100 * compoundsPerYear), compoundsPerYear * n),
+  );
 });
 fixedDepositSchema.virtual("interestEarned").get(function () {
   return this.maturityAmount - this.principal;
