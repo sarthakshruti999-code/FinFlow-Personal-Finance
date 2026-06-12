@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { getExpenses, createExpense, deleteExpense } from "../api";
+import { getExpenses, createExpense, deleteExpense, exportExpenses } from "../api";
 import { C, fmt, MetricCard, SectionTitle, Pill, Spinner, ErrorBox, CAT_ICON, CATEGORIES } from "../shared";
 
 const EMPTY = { date: "", category: "Food", label: "", amount: "", type: "need", notes: "" };
@@ -35,18 +35,18 @@ export default function ExpenseTracker() {
     finally { setSaving(false); }
   };
 
-  const del = async (id) => {
-    try {
-      await deleteExpense(id);
-      setExpenses((p) => p.filter((e) => e._id !== id));
-    } catch (e) {
-      setError(e.response?.data?.error || "Failed to delete");
-    }
-  };
+const del = async (id) => {
+  try {
+    await deleteExpense(id);
+    setExpenses((prevExpenses) => prevExpenses.filter((e) => e._id !== id));
+  } catch (e) {
+    const errorMsg = e.response?.data?.error || "Failed to delete";
+    setError(errorMsg);
+  }
+};
 
 
-
- const handleExport = async () => {
+const handleExport = async () => {
   if (!expenses || expenses.length === 0) {
     setError("No transactions available to export.");
     return;
@@ -56,6 +56,7 @@ export default function ExpenseTracker() {
     const blob = response.data instanceof Blob
       ? response.data
       : new Blob([response.data], { type: "text/csv" });
+      
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -65,20 +66,26 @@ export default function ExpenseTracker() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   } catch (e) {
-    setError("Failed to export transactions. Please try again.");
+    console.error("Export error:", e);
+    setError("Failed to export transactions.");
   }
 };
+  
+// ── Derived ────────────────────────────────────────────────────────────────
+  const { needSpend, wantSpend, catData, filtered } = useMemo(() => {
+    const needs = expenses.filter(e => e.type === "need").reduce((s, e) => s + e.amount, 0);
+    const wants = expenses.filter(e => e.type === "want").reduce((s, e) => s + e.amount, 0);
+    
+    const categories = CATEGORIES.map(c => ({
+      name: c,
+      need: expenses.filter(e => e.category === c && e.type === "need").reduce((s, e) => s + e.amount, 0),
+      want: expenses.filter(e => e.category === c && e.type === "want").reduce((s, e) => s + e.amount, 0),
+    })).filter(c => c.need + c.want > 0);
 
-  // ── Derived ────────────────────────────────────────────────────────────────
-  const needSpend  = expenses.filter(e => e.type === "need").reduce((s, e) => s + e.amount, 0);
-  const wantSpend  = expenses.filter(e => e.type === "want").reduce((s, e) => s + e.amount, 0);
-  const filtered   = filter === "all" ? expenses : expenses.filter(e => e.type === filter);
+    const filteredData = filter === "all" ? expenses : expenses.filter(e => e.type === filter);
 
-  const catData = CATEGORIES.map(c => ({
-    name: c,
-    need: expenses.filter(e => e.category === c && e.type === "need").reduce((s, e) => s + e.amount, 0),
-    want: expenses.filter(e => e.category === c && e.type === "want").reduce((s, e) => s + e.amount, 0),
-  })).filter(c => c.need + c.want > 0);
+    return { needSpend: needs, wantSpend: wants, catData: categories, filtered: filteredData };
+  }, [expenses, filter]);
 
   if (loading) return <Spinner />;
 
@@ -164,17 +171,29 @@ export default function ExpenseTracker() {
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20, flex: "1 1 300px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <SectionTitle>Transactions</SectionTitle>
-            <div style={{ display: "flex", gap: 6 }}>
-              {["all", "need", "want"].map(f => (
-                <button key={f} onClick={() => setFilter(f)}
-                  style={{
-                    padding: "5px 12px", borderRadius: 20,
-                    border: `1px solid ${filter === f ? C.gold : C.border}`,
-                    background: filter === f ? C.gold + "22" : "transparent",
-                    color: filter === f ? C.gold : C.muted,
-                    cursor: "pointer", fontSize: 11, fontWeight: 600, textTransform: "capitalize",
-                  }}>{f}</button>
-              ))}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              
+              {/* EXPORT BUTTON INTEGRATED HERE */}
+              <button onClick={handleExport}
+                style={{
+                  background: "transparent", border: `1px solid ${C.border}`, padding: "4px 10px",
+                  borderRadius: 20, color: C.muted, fontSize: 10, cursor: "pointer", fontWeight: 600
+                }}>
+                Export CSV
+              </button>
+
+              <div style={{ display: "flex", gap: 6 }}>
+                {["all", "need", "want"].map(f => (
+                  <button key={f} onClick={() => setFilter(f)}
+                    style={{
+                      padding: "5px 12px", borderRadius: 20,
+                      border: `1px solid ${filter === f ? C.gold : C.border}`,
+                      background: filter === f ? C.gold + "22" : "transparent",
+                      color: filter === f ? C.gold : C.muted,
+                      cursor: "pointer", fontSize: 11, fontWeight: 600, textTransform: "capitalize",
+                    }}>{f}</button>
+                ))}
+              </div>
             </div>
           </div>
 
