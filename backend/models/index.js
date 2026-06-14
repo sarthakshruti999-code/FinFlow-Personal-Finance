@@ -25,7 +25,7 @@ const stockSchema = new Schema({
   companyName: { type: String, default: "" },
   qty:       { type: Number, required: true, min: 0 },
   avgPrice:  { type: Number, required: true, min: 0 },
-  cmp:       { type: Number, default: 0 },          // Current Market Price — updated by cron
+  cmp:       { type: Number, default: 0, min: 0 },  // Current Market Price — updated by cron
   sector:    { type: String, default: "Others" },
   exchange:  { type: String, enum: ["NSE","BSE"], default: "NSE" },
   buyDate:   { type: Date },

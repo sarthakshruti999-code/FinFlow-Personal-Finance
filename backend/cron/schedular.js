@@ -14,8 +14,10 @@ cron.schedule('35 15 * * *',async ()=>{
             const cmpResponse = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`);
             const cmpData = await cmpResponse.json();
             const latestPrice = Number(cmpData["Global Quote"]?.["05. price"]);
-            if (!isNaN(latestPrice) && latestPrice > 0) {
-                priceMap[ticker] = latestPrice;
+
+            if (!Number.isNaN(latestPrice) && latestPrice > 0) {
+                stk.cmp = latestPrice;
+                await stk.save();
             }
             await sleep(1000);
         }

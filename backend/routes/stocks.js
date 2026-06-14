@@ -4,6 +4,11 @@ const dotenv = require("dotenv");
 const USER = "demo_user";
 dotenv.config();
 
+const toPositiveNumber = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : null;
+};
+
 router.get("/", async (req, res) => {
   try {
     const stocks = await Stock.find({ userId: USER }).sort({ ticker: 1 });
@@ -31,7 +36,10 @@ router.post("/", async (req, res) => {
 
     const cmpResponse = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${stockData.ticker}&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`);
     const cmpData = await cmpResponse.json();
-    stockData.cmp = Number(cmpData["Global Quote"]["05. price"])
+    stockData.cmp = toPositiveNumber(cmpData["Global Quote"]?.["05. price"]);
+    if (stockData.cmp === null) {
+      throw new Error("Unable to fetch a valid stock price");
+    }
     
     const stock = await Stock.create({ ...stockData, userId: USER });
     res.status(201).json(stock);
@@ -41,8 +49,18 @@ router.post("/", async (req, res) => {
  
 router.put("/:id", async (req, res) => {
   try {
+    const updateData = { ...req.body };
+
+    if (updateData.cmp !== undefined) {
+      const cmpValue = toPositiveNumber(updateData.cmp);
+      if (cmpValue === null) {
+        return res.status(400).json({ error: "CMP must be a positive number" });
+      }
+      updateData.cmp = cmpValue;
+    }
+
     const stock = await Stock.findOneAndUpdate(
-      { _id: req.params.id, userId: USER }, req.body,
+      { _id: req.params.id, userId: USER }, updateData,
       { new: true, runValidators: true }
     );
     if (!stock) return res.status(404).json({ error: "Not found" });
@@ -53,12 +71,17 @@ router.put("/:id", async (req, res) => {
 // PATCH /api/stocks/:id/cmp  — update live price
 router.patch("/:id/cmp", async (req, res) => {
   try {
-    const { cmp } = req.body;
+    const cmpValue = toPositiveNumber(req.body.cmp);
+    if (cmpValue === null) {
+      return res.status(400).json({ error: "CMP must be a positive number" });
+    }
+
     const stock = await Stock.findOneAndUpdate(
       { _id: req.params.id, userId: USER },
-      { cmp },
-      { new: true }
+      { cmp: cmpValue },
+      { new: true, runValidators: true }
     );
+    if (!stock) return res.status(404).json({ error: "Not found" });
     res.json(stock);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
