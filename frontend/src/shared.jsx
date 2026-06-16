@@ -1,5 +1,6 @@
 // ── Design Tokens ─────────────────────────────────────────────────────────────
-export const C = {
+// ── Theme Tokens ──────────────────────────────────────────────────────────────
+const DARK = {
   bg:      "#0D0F14",
   surface: "#13161D",
   card:    "#181C26",
@@ -14,6 +15,30 @@ export const C = {
   muted:   "#7A7F93",
   accent:  "#1A2035",
 };
+
+const LIGHT = {
+  bg:      "#F4F6FB",
+  surface: "#FFFFFF",
+  card:    "#F0F2F8",
+  border:  "#D8DCE8",
+  gold:    "#B8860B",
+  goldDim: "#8A6C28",
+  green:   "#16A34A",
+  red:     "#DC2626",
+  blue:    "#2563EB",
+  purple:  "#7C3AED",
+  text:    "#111827",
+  muted:   "#6B7280",
+  accent:  "#E8ECF5",
+};
+
+// Mutable reference — App.jsx calls setTheme() to swap it
+export let C = { ...DARK };
+
+export function setTheme(mode) {
+  const tokens = mode === "light" ? LIGHT : DARK;
+  Object.assign(C, tokens);
+}
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 export const fmt = (n) =>
