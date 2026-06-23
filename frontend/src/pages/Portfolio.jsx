@@ -10,7 +10,11 @@ import { C, fmt, MetricCard, SectionTitle, Pill, Spinner, ErrorBox } from "../sh
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fdCalc(fd) {
   const n   = fd.tenure / 12;
-  const mat = Math.round(fd.principal * Math.pow(1 + fd.rate / 100, n));
+  const compoundsPerYear = 4;
+  const mat = Math.round(
+    fd.principal *
+      Math.pow(1 + fd.rate / (100 * compoundsPerYear), compoundsPerYear * n),
+  );
   return { mat, int: mat - fd.principal };
 }
 
@@ -74,9 +78,13 @@ function StocksTab() {
   };
 
   const saveCMP = async (id, cmp) => {
-    if (!cmp || isNaN(cmp)) return;
+    const cmpValue = Number(cmp);
+    if (!Number.isFinite(cmpValue) || cmpValue <= 0) {
+      setError("CMP must be a positive number");
+      return;
+    }
     try {
-      const { data } = await updateCMP(id, Number(cmp));
+      const { data } = await updateCMP(id, cmpValue);
       setStocks(p => p.map(s => s._id === id ? data : s));
       setCmpEdit(p => { const n = { ...p }; delete n[id]; return n; });
     } catch (e) { setError("CMP update failed"); }
@@ -134,6 +142,8 @@ function StocksTab() {
                         <div style={{ display: "flex", gap: 4 }}>
                           <input type="number" value={cmpEdit[st._id]}
                             onChange={e => setCmpEdit(p => ({ ...p, [st._id]: e.target.value }))}
+                            min="0.01"
+                            step="0.01"
                             style={{ width: 80, padding: "4px 8px", background: C.surface, border: `1px solid ${C.gold}`, borderRadius: 6, color: C.text, fontSize: 12 }} />
                           <button onClick={() => saveCMP(st._id, cmpEdit[st._id])}
                             style={{ background: C.gold, color: "#0D0F14", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>✓</button>
